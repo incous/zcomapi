@@ -1,0 +1,2 @@
+# zcomapi
+command for zcomapi
