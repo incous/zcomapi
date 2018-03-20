@@ -1,0 +1,14 @@
+# [1] Account Information
+USERNAME=zvnuXXXXXXXX
+PASSWORD=<YOUR_PASSWORD>
+TENANT_ID=<TENANT_ID>
+TENANT_NAME=zvntXXXXXXXX
+
+# Object Storage Prefix
+OBJ_PREFIX=zc_
+
+##########################################################
+# Data below will be set up by command "-m ident -a token"
+##########################################################
+# Token
+TOKEN=dc3ce525fbe24a0ba319314121fcca9f
