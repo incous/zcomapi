@@ -24,6 +24,51 @@ func_define_url ()
   DNS_URL="https://dns-service.${REGION}.cloud.z.com/v1"
 }
 
+generate_post_data()
+{
+  cat <<EOF
+{
+  "auth": {
+    "passwordCredentials": {
+      "username":"${USERNAME}",
+      "password":"${PASSWORD}"
+     },
+    "tenantId":"${TENANT_ID}"
+  }
+}
+EOF
+}
+
+func_account_orders ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${ACCOUNT_URL}/${TENANT_ID}/order-items > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
+}
+
+func_account_orderinfo ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${ACCOUNT_URL}/${TENANT_ID}/order-items/${OBJECT} > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
+}
+
+func_account_invoices ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${ACCOUNT_URL}/${TENANT_ID}/billing-invoices > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
+}
+
+func_account_notifications ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${ACCOUNT_URL}/${TENANT_ID}/notifications > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
+}
+
+func_ident_token()
+{
+  token=`curl -s -X POST -H "Accept: application/json" -d "$(generate_post_data)" ${IDENT_URL}/tokens | jq ".access.token.id" | tr -d "\""`
+  sed -i.bak "s/^TOKEN=.*$/TOKEN=${token}/" ${CONFIGFILE}
+}
+
 func_compute_vms ()
 {
   curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${COMPUTE_URL}/${TENANT_ID}/servers/detail > /tmp/output.tmp
@@ -124,84 +169,6 @@ func_volume_info ()
 {
   curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${VOLUME_URL}/${TENANT_ID}/volumes/${OBJECT} > /tmp/output.tmp
   cat /tmp/output.tmp | jq '.["volume"] | {name: .name, id: .id, status: .status, size: .size, type: .volume_type, boot: .bootable, zone: .availability_zone, encrypt: .encrypted, vmid: .attachments[0].server_id}'
-}
-
-func_database_list ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/services > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_database_dbs ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/databases > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_database_dbinfo ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/databases/${OBJECT} > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_database_dbusers ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/databases/${OBJECT}/grant > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_database_users ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/users > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_database_userinfo ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/users/${OBJECT} > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_account_orders ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${ACCOUNT_URL}/${TENANT_ID}/order-items > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_account_orderinfo ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${ACCOUNT_URL}/${TENANT_ID}/order-items/${OBJECT} > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_account_invoices ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${ACCOUNT_URL}/${TENANT_ID}/billing-invoices > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_account_notifications ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${ACCOUNT_URL}/${TENANT_ID}/notifications > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_dns_domains ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DNS_URL}/domains > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.["domains"][] | {name: .name, id: .id}'
-}
-
-func_dns_dominfo ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DNS_URL}/domains/${OBJECT} > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.'
-}
-
-func_dns_domrecords ()
-{
-  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DNS_URL}/domains/${OBJECT}/records > /tmp/output.tmp
-  cat /tmp/output.tmp | jq '.["records"][] | {id: .id, name: .name, type: .type, data: .data}'
 }
 
 func_image_list ()
@@ -306,25 +273,58 @@ func_network_healthcheckinfo ()
   cat /tmp/output.tmp | jq '.["health_monitor"]'
 }
 
-generate_post_data()
+func_database_list ()
 {
-  cat <<EOF
-{
-  "auth": {
-    "passwordCredentials": {
-      "username":"${USERNAME}",
-      "password":"${PASSWORD}"
-     },
-    "tenantId":"${TENANT_ID}"
-  }
-}
-EOF
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/services > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
 }
 
-func_ident_token()
+func_database_dbs ()
 {
-  token=`curl -s -X POST -H "Accept: application/json" -d "$(generate_post_data)" ${IDENT_URL}/tokens | jq ".access.token.id" | tr -d "\""`
-  sed -i.bak "s/^TOKEN=.*$/TOKEN=${token}/" ${CONFIGFILE}
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/databases > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
+}
+
+func_database_dbinfo ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/databases/${OBJECT} > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
+}
+
+func_database_dbusers ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/databases/${OBJECT}/grant > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
+}
+
+func_database_users ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/users > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
+}
+
+func_database_userinfo ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DATABASE_URL}/users/${OBJECT} > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
+}
+
+func_dns_domains ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DNS_URL}/domains > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.["domains"][] | {name: .name, id: .id}'
+}
+
+func_dns_dominfo ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DNS_URL}/domains/${OBJECT} > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.'
+}
+
+func_dns_domrecords ()
+{
+  curl -s -X GET -H "Accept: application/json" -H "X-Auth-Token: ${TOKEN}" ${DNS_URL}/domains/${OBJECT}/records > /tmp/output.tmp
+  cat /tmp/output.tmp | jq '.["records"][] | {id: .id, name: .name, type: .type, data: .data}'
 }
 
 while getopts r:m:a:o:p: OPT
@@ -342,6 +342,30 @@ done
 #Check Arguments
 if [ -z ${REGION} ] || [ -z ${MODULE} ] || [ -z ${ACTION} ]; then
   func_usage
+fi
+
+if [[ ${MODULE} = "account" ]]; then
+  ACCOUNT_URL="https://account.${REGION}.cloud.z.com/v1"
+  if [[ ${ACTION} = "orders" ]]; then
+    func_account_orders;
+  elif [[ ${ACTION} = "order" ]]; then
+    if [ -z ${OBJECT} ]; then
+      func_usage;
+    else
+      func_account_orderinfo;
+    fi
+  elif [[ ${ACTION} = "invoices" ]]; then
+    func_account_products;
+  elif [[ ${ACTION} = "notifications" ]]; then
+    func_account_notifications;
+  fi
+fi
+
+if [[ ${MODULE} = "ident" ]]; then
+  IDENT_URL="https://identity.${REGION}.cloud.z.com/v2.0"
+  if [[ ${ACTION} = "token" ]]; then
+    func_ident_token;
+  fi
 fi
 
 if [[ ${MODULE} = "compute" ]]; then
@@ -428,59 +452,6 @@ if [[ ${MODULE} = "volume" ]]; then
   fi
 fi
 
-if [[ ${MODULE} = "ident" ]]; then
-  IDENT_URL="https://identity.${REGION}.cloud.z.com/v2.0"
-  if [[ ${ACTION} = "token" ]]; then
-    func_ident_token;
-  fi
-fi
-
-if [[ ${MODULE} = "database" ]]; then
-  DATABASE_URL="https://database-hosting.${REGION}.cloud.z.com/v1"
-  if [[ ${ACTION} = "list" ]]; then
-    func_database_list;
-  elif [[ ${ACTION} = "dbs" ]]; then
-    func_database_dbs;
-  elif [[ ${ACTION} = "dbinfo" ]]; then
-    if [ -z ${OBJECT} ]; then
-      func_usage;
-    else
-      func_database_dbinfo;
-    fi
-  elif [[ ${ACTION} = "dbusers" ]]; then
-    if [ -z ${OBJECT} ]; then
-      func_usage;
-    else
-      func_database_dbusers;
-    fi
-  elif [[ ${ACTION} = "users" ]]; then
-    func_database_users;
-  elif [[ ${ACTION} = "userinfo" ]]; then
-    if [ -z ${OBJECT} ]; then
-      func_usage;
-    else
-      func_database_userinfo;
-    fi
-  fi
-fi
-
-if [[ ${MODULE} = "account" ]]; then
-  ACCOUNT_URL="https://account.${REGION}.cloud.z.com/v1"
-  if [[ ${ACTION} = "orders" ]]; then
-    func_account_orders;
-  elif [[ ${ACTION} = "order" ]]; then
-    if [ -z ${OBJECT} ]; then
-      func_usage;
-    else
-      func_account_orderinfo;
-    fi
-  elif [[ ${ACTION} = "invoices" ]]; then
-    func_account_products;
-  elif [[ ${ACTION} = "notifications" ]]; then
-    func_account_notifications;
-  fi
-fi
-
 if [[ ${MODULE} = "image" ]]; then
   IMAGE_URL="https://image-service.${REGION}.cloud.z.com"
   if [[ ${ACTION} = "list" ]]; then
@@ -490,27 +461,6 @@ if [[ ${MODULE} = "image" ]]; then
       func_usage;
     else
       func_image_info;
-    fi
-  elif [[ ${ACTION} = "quota" ]]; then
-    func_image_quota;
-  fi
-fi
-
-if [[ ${MODULE} = "dns" ]]; then
-  DNS_URL="https://dns-service.${REGION}.cloud.z.com/v1"
-  if [[ ${ACTION} = "domains" ]]; then
-    func_dns_domains;
-  elif [[ ${ACTION} = "dominfo" ]]; then
-    if [ -z ${OBJECT} ]; then
-      func_usage;
-    else
-      func_dns_dominfo;
-    fi
-  elif [[ ${ACTION} = "domrecords" ]]; then
-    if [ -z ${OBJECT} ]; then
-      func_usage;
-    else
-      func_dns_domrecords;
     fi
   elif [[ ${ACTION} = "quota" ]]; then
     func_image_quota;
@@ -575,5 +525,55 @@ if [[ ${MODULE} = "network" ]]; then
     else
       func_network_healthcheckinfo;
     fi
+  fi
+fi
+
+if [[ ${MODULE} = "database" ]]; then
+  DATABASE_URL="https://database-hosting.${REGION}.cloud.z.com/v1"
+  if [[ ${ACTION} = "list" ]]; then
+    func_database_list;
+  elif [[ ${ACTION} = "dbs" ]]; then
+    func_database_dbs;
+  elif [[ ${ACTION} = "dbinfo" ]]; then
+    if [ -z ${OBJECT} ]; then
+      func_usage;
+    else
+      func_database_dbinfo;
+    fi
+  elif [[ ${ACTION} = "dbusers" ]]; then
+    if [ -z ${OBJECT} ]; then
+      func_usage;
+    else
+      func_database_dbusers;
+    fi
+  elif [[ ${ACTION} = "users" ]]; then
+    func_database_users;
+  elif [[ ${ACTION} = "userinfo" ]]; then
+    if [ -z ${OBJECT} ]; then
+      func_usage;
+    else
+      func_database_userinfo;
+    fi
+  fi
+fi
+
+if [[ ${MODULE} = "dns" ]]; then
+  DNS_URL="https://dns-service.${REGION}.cloud.z.com/v1"
+  if [[ ${ACTION} = "domains" ]]; then
+    func_dns_domains;
+  elif [[ ${ACTION} = "dominfo" ]]; then
+    if [ -z ${OBJECT} ]; then
+      func_usage;
+    else
+      func_dns_dominfo;
+    fi
+  elif [[ ${ACTION} = "domrecords" ]]; then
+    if [ -z ${OBJECT} ]; then
+      func_usage;
+    else
+      func_dns_domrecords;
+    fi
+  elif [[ ${ACTION} = "quota" ]]; then
+    func_image_quota;
   fi
 fi
